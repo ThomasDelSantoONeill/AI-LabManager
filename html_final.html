@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Panel de Control AI-Lab</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --card-bg: rgba(28, 28, 30, 0.65);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: #8e8e93;
+            --accent-green: #30d158;
+            --accent-yellow: #ffd60a;
+            --accent-red: #ff453a;
+            --accent-blue: #0a84ff;
+            --blur-amount: 20px;
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 17px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            padding-top: calc(var(--safe-top) + 20px);
+            padding-bottom: calc(var(--safe-bottom) + 80px);
+            /* Space for bottom nav/footer if needed */
+        }
+
+        /* Background Gradient Mesh for "Wow" factor */
+        .bg-mesh {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background:
+                radial-gradient(at 0% 0%, rgba(10, 132, 255, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(255, 69, 58, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(48, 209, 88, 0.15) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(255, 214, 10, 0.15) 0px, transparent 50%);
+            filter: blur(40px);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        header {
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 34px;
+            font-weight: 700;
+            margin: 0 0 8px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 17px;
+            margin: 0;
+        }
+
+        /* Search & Filter */
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .controls::-webkit-scrollbar {
+            display: none;
+        }
+
+        .search-bar {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(118, 118, 128, 0.24);
+            border: none;
+            border-radius: 10px;
+            padding: 8px 8px 8px 36px;
+            color: var(--text-primary);
+            font-size: 17px;
+            height: 36px;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            width: 16px;
+            height: 16px;
+        }
+
+        .filter-chip {
+            background: rgba(118, 118, 128, 0.24);
+            border: none;
+            border-radius: 18px;
+            padding: 6px 16px;
+            color: var(--text-secondary);
+            /* Inactive color */
+            font-size: 15px;
+            font-weight: 600;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .filter-chip.active {
+            background: var(--text-primary);
+            color: var(--bg-color);
+        }
+
+        /* Specific filter colors when active could be nice */
+        .filter-chip[data-filter="finished"].active {
+            background: var(--accent-green);
+            color: black;
+        }
+
+        .filter-chip[data-filter="stalled"].active {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .filter-chip[data-filter="progress"].active {
+            background: var(--accent-yellow);
+            color: black;
+        }
+
+
+        /* Project Cards */
+        .project-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .project-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border-radius: 16px;
+            border: 1px solid var(--card-border);
+            padding: 16px;
+            transition: transform 0.2s ease, background 0.2s;
+            cursor: pointer;
+            /* make entire card clickable */
+        }
+
+        .project-card:active {
+            transform: scale(0.98);
+            background: rgba(44, 44, 46, 0.8);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .project-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+            padding-right: 12px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+
+        .status-badge.finished {
+            background: rgba(48, 209, 88, 0.2);
+            color: var(--accent-green);
+        }
+
+        .status-badge.stalled {
+            background: rgba(255, 69, 58, 0.2);
+            color: var(--accent-red);
+        }
+
+        .status-badge.progress {
+            background: rgba(255, 214, 10, 0.2);
+            color: var(--accent-yellow);
+        }
+
+        .project-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .expandable-content {
+            display: none;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--card-border);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .expanded .expandable-content {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h3 {
+            font-size: 15px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            letter-spacing: 0.5px;
+        }
+
+        .objective-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px 0;
+        }
+
+        .objective-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        .objective-item::before {
+            content: "";
+            display: block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            margin-top: 8px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .objective-item.done::before {
+            background: var(--accent-green);
+        }
+
+        .objective-item.pending::before {
+            background: var(--accent-yellow);
+        }
+
+        .reasoning-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .reasoning-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .chevron {
+            color: var(--text-secondary);
+            transition: transform 0.3s;
+            margin-left: auto;
+            /* Push to right */
+        }
+
+        .expanded .chevron {
+            transform: rotate(180deg);
+        }
+
+        .ai-suggestions-box {
+            background: rgba(10, 132, 255, 0.1);
+            border: 1px solid rgba(10, 132, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            margin-top: 16px;
+        }
+
+        .ai-suggestions-label {
+            font-weight: 600;
+            color: var(--accent-blue);
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .operational-box {
+            background: rgba(255, 69, 58, 0.1);
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            margin-top: 16px;
+            color: var(--text-primary);
+        }
+
+        .operational-label {
+            font-weight: 600;
+            color: var(--accent-red);
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .technical-box {
+            background: rgba(174, 174, 178, 0.1);
+            border: 1px solid rgba(174, 174, 178, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            line-height: 1.4;
+            margin-top: 16px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="bg-mesh"></div>
+
+    <div class="container">
+        <header>
+            <h1>Proyectos AI-Lab</h1>
+            <p class="subtitle">Resumen Ejecutivo</p>
+        </header>
+
+        <section class="controls">
+            <div class="search-bar">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                <input type="text" class="search-input" placeholder="Buscar proyectos..." oninput="filterProjects()">
+            </div>
+            <button class="filter-chip active" onclick="setFilter('all', this)">Todos</button>
+            <button class="filter-chip" data-filter="finished"
+                onclick="setFilter('finished', this)">Finalizados</button>
+            <button class="filter-chip" data-filter="progress" onclick="setFilter('progress', this)">En Curso</button>
+            <button class="filter-chip" data-filter="stalled" onclick="setFilter('stalled', this)">Parados</button>
+        </section>
+
+        <div id="project-list" class="project-list">
+            <!-- Project cards will be injected here via JS -->
+        </div>
+    </div>
+
+    <script>
+        // Sample Data - This can be edited to update the dashboard
+        // Placeholder for Python script injection
+        // The script will replace the following line with actual data
+        const projects = [
+            {
+                "title": "AutoRot",
+                "lead": "Thomás",
+                "status": "progress",
+                "lastUpdated": "No especificado",
+                "objectives": [
+                    {
+                        "text": "Implementar lógica de backend faltante.",
+                        "done": false
+                    },
+                    {
+                        "text": "Integrar frontend con el backend.",
+                        "done": false
+                    },
+                    {
+                        "text": "Pruebas de integración.",
+                        "done": false
+                    }
+                ],
+                "reasoning": "El proyecto está activo con el frontend completado. El trabajo está actualmente bloqueado o esperando la implementación de la lógica del backend y la integración posterior.",
+                "improvements": [],
+                "dissemination": [],
+                "moa_config": "No especificado",
+                "operational_constraints": "No especificado",
+                "ai_suggestions": "Evaluación de Consenso: El proyecto actualmente exhibe fallos arquitectónicos críticos que ponen en peligro su viabilidad, comenzando con el uso poco profesional de rutas locales hardcodeadas que hace imposible la colaboración y la contenedorización.\n\nLa decisión de marcar el frontend como \"Completo\" mientras el backend permanece indefinido es un fallo estratégico; estás construyendo una UI sobre contratos de datos inexistentes, garantizando una fase de refactorización costosa. \n\nFundamentalmente, no has definido el mecanismo \"IA\" central; la programación es un problema de satisfacción de restricciones determinista que requiere un solucionador matemático (ej. OR-Tools), no un LLM Generativo probabilístico propenso a alucinaciones.\n\nDebes definir inmediatamente tus funciones objetivo y restricciones de optimización, ya que tratar esta lógica compleja como una simple aplicación CRUD resultará en un fallo funcional.\n\nLa falta de una especificación API formal (como OpenAPI) crea una desconexión peligrosa entre tus capas desacopladas.\n\nAdemás, ignorar la privacidad de datos, la seguridad de PII y los marcos de equidad algorítmica crea responsabilidades éticas y legales significativas.\n\nLa metodología de desarrollo necesita cambiar instantáneamente de un enfoque en cascada a desarrollo por cortes verticales utilizando Desarrollo Guiado por Pruebas (TDD) para validar la lógica de programación primero.\n\nLa documentación debe ser revisada para incluir listas de dependencias, pasos de reproducción del entorno y diagramas arquitectónicos.\n\nUna interfaz \"human-in-the-loop\" es esencial para gestionar casos borde, algo que el diseño actual pasa por alto.\n\n**Directiva Directa:** Detén todo el desarrollo de frontend inmediatamente y prioriza el diseño del modelo de dominio del backend, el núcleo algorítmico y un contrato API estricto.",
+                "id": 2
+            },
+            {
+                "title": "Proyecto Activa-LDL",
+                "lead": "Desconocido",
+                "status": "progress",
+                "lastUpdated": "Desconocido",
+                "objectives": [
+                    {
+                        "text": "Transformar registros médicos no estructurados (PDFs) en conjuntos de datos estructurados (JSON/Excel)",
+                        "done": true
+                    },
+                    {
+                        "text": "Identificación precisa de factores de riesgo cardiovascular (Perfiles lipídicos, Diabetes, Función renal)",
+                        "done": true
+                    },
+                    {
+                        "text": "Implementar procesamiento offline local y privado en hardware de consumo",
+                        "done": true
+                    },
+                    {
+                        "text": "Automatizar el llenado de registros clínicos vía Fuerza de Trabajo IA",
+                        "done": false
+                    }
+                ],
+                "reasoning": "El sistema está funcionalmente implementado con arquitecturas definidas (PRO/FLASH) y actualmente está en validación donde residentes verifican el 25% de la muestra para crear una 'Verdad Terreno' para futura optimización.",
+                "improvements": [
+                    "Informes de Riesgo Automatizados vía App Control Lipídico",
+                    "Benchmarking de Gestión respecto a tratamientos prescritos",
+                    "Refinamiento de Prompts basado en Validación de Verdad Terreno por residentes"
+                ],
+                "dissemination": [
+                    "Reunión Anual Sección de Cardiología Clínica 2026",
+                    "ESC Congress 2026"
+                ],
+                "moa_config": "Arquitectura dividida en 'Versión PRO' (Alta Precisión: Escriba MedGemma 27B-Q4 + Auditor DeepSeek-R1 Distill-Qwen 32B) y 'Versión FLASH' (Alto Rendimiento: Escriba MedGemma 4B + Auditor DeepSeek-R1 Distill-Llama 3.1 8B + Corrector Hermes 3).",
+                "operational_constraints": "Flujo de datos disfuncional del sistema de información hospitalaria (Selene) y falta de estandarización de exportación causan PDFs ruidosos y no estructurados, llevando ocasionalmente al rechazo de archivos por el agente Auditor.",
+                "ai_suggestions": "Evaluación de Consenso: La arquitectura Activa-LDL representa una Prueba de Concepto sofisticada más que un sistema listo para producción, fundamentalmente comprometida por la estrategia \"Tetris de GPU\" de matar procesos que introduce latencia e inestabilidad inaceptables. Debes abandonar la dependencia de fuerza bruta en modelos 27B cuantizados a favor de modelos 7B-8B de estado del arte y afinados (como Llama 3.1) para mejorar significativamente el rendimiento sin sacrificar fidelidad clínica. La dependencia de Regex frágil para el filtrado \"Pre-RAG\" es un punto único de fallo crítico; debes reemplazar esto con modelos de visión-lenguaje o segmentación semántica para manejar resilientemente los cambios de formato de \"Selene\" en lugar de culpar a los datos ascendentes. Además, el flujo de trabajo lineal y bloqueante entre Escriba y Auditor crea cuellos de botella operativos que exigen un cambio a colas asíncronas y desacopladas o enrutamiento inteligente basado en la complejidad del archivo. La implementación actual del Auditor es estadísticamente defectuosa, ya que modelos más pequeños o fuertemente cuantizados carecen de la densidad de parámetros para vigilar confiablemente a modelos más grandes, introduciendo potencialmente nuevas alucinaciones. Para escalar, debes implementar un arnés de evaluación automatizado \"LLM-como-Juez\" para complementar la revisión humana, ya que depender únicamente de residentes impide pruebas de regresión rápidas. La bifurcación entre \"Flash\" y \"Pro\" es un sustituto crudo para la evaluación de complejidad dinámica y falla en maximizar la utilización del hardware. En última instancia, actualmente estás resolviendo problemas de arquitectura de software con hacks de scripting, resultando en un sistema que lucha contra su propia infraestructura. La refactorización inmediata debe centrarse en pivotar de \"grandes modelos genéricos exprimidos\" a \"modelos pequeños especializados bien entrenados\" dentro de un entorno de servicio robusto.",
+                "id": 3
+            },
+            {
+                "title": "Proyecto Código Infarto",
+                "lead": "Thomas",
+                "status": "stalled",
+                "lastUpdated": "Pausado",
+                "objectives": [
+                    {
+                        "text": "Rellenar de manera automática una base de datos de pacientes.",
+                        "done": false
+                    },
+                    {
+                        "text": "Recopilación de datos de pacientes necesarios.",
+                        "done": false
+                    }
+                ],
+                "reasoning": "El proyecto utiliza la misma herramienta programática que Activa-LDL. Actualmente se encuentra parado a la espera de los datos necesarios de los pacientes.",
+                "improvements": [],
+                "dissemination": [],
+                "moa_config": "Misma arquitectura MoA que Activa-LDL.",
+                "operational_constraints": "Esperando datos de pacientes.",
+                "ai_suggestions": "Evaluación Pendiente: El proyecto está en fase temprana y bloqueado por falta de datos. Se recomienda priorizar la obtención de datos para validar la viabilidad de la tecnología MoA en este nuevo contexto.",
+                "id": 4
+            },
+            {
+                "title": "AI Nexus",
+                "lead": "No especificado",
+                "status": "finished",
+                "lastUpdated": "Próximo Lanzamiento (Edición #1)",
+                "objectives": [
+                    {
+                        "text": "Mejorar la calidad de los informes de vigilancia tecnológica",
+                        "done": true
+                    },
+                    {
+                        "text": "Simular flujo de trabajo de analista humano experto vía IA",
+                        "done": true
+                    },
+                    {
+                        "text": "Lanzar newsletter AI-Lab Inside para conectar el Lab con el servicio diario",
+                        "done": true
+                    }
+                ],
+                "reasoning": "El estado del proyecto está explícitamente marcado como 'Completado'. La arquitectura está finalizada usando React, TypeScript y Vite, y la integración de IA con Gemini es funcional.",
+                "improvements": [],
+                "dissemination": [
+                    "Newsletter AI-Lab Inside (quincenal)"
+                ],
+                "moa_config": "Google Gemini 1.5 Pro con Grounding (Búsqueda de Google) configurado para salida JSON Estricta.",
+                "operational_constraints": "Ninguno reportado. ABORDADO: La fragilidad del scraper web tradicional fue resuelta usando filtrado y categorización basada en LLM.",
+                "ai_suggestions": "Evaluación de Consenso: La arquitectura actual de **AI Nexus** es fundamentalmente insegura y operacionalmente inmadura, funcionando como un \"envoltorio delgado\" en lugar de una solución de grado empresarial. Alojar la lógica de orquestación dentro de una SPA de React del lado del cliente es una vulnerabilidad crítica que probablemente expone claves API, necesitando una migración inmediata a una arquitectura Backend-for-Frontend (BFF) o del lado del servidor. La dependencia del \"Grounding\" de Gemini sirve como un sustituto frágil para un pipeline de datos determinista, introduciendo riesgos significativos de citas alucinadas y bloqueo total del proveedor. Para garantizar la fiabilidad clínica, debes reemplazar el enfoque de prompt de \"un solo disparo\" con un sistema RAG verificable o flujo de trabajo agéntico que incorpore integración directa de API y validación rigurosa de esquemas. Fiscalmente, utilizar Gemini 1.5 Pro para agregación general es un desperdicio; la pila debería favorecer un enfoque escalonado donde modelos más pequeños y rápidos manejen la recuperación y el filtrado. Confiar en la salida \"JSON Estricta\" garantiza solo sintaxis, no veracidad; un paso obligatorio de validación \"human-in-the-loop\" es esencial antes de presentar datos al personal médico. La falta de gobernanza de datos, gráfico de conocimiento propietario y monitoreo de deriva hace que la designación \"Estado: Completado\" sea peligrosamente engañosa. En última instancia, esta herramienta es actualmente una prueba de concepto estocástica que requiere re-plataforma para desacoplar la UI de la capa de datos y establecer una soberanía de datos genuina.",
+                "id": 6
+            }
+        ];
+
+        let currentFilter = 'all';
+
+        function renderProjects() {
+            const list = document.getElementById('project-list');
+            const searchTerm = document.querySelector('.search-input').value.toLowerCase();
+
+            list.innerHTML = ''; // Clear current
+
+            projects.forEach(project => {
+                // Filter Logic
+                if (currentFilter !== 'all' && project.status !== currentFilter) return;
+                if (!project.title.toLowerCase().includes(searchTerm) &&
+                    !project.lead.toLowerCase().includes(searchTerm)) return;
+
+                // Create Card
+                const card = document.createElement('div');
+                card.className = `project-card ${project.status}`;
+                card.onclick = (e) => toggleCard(e, card);
+
+                // Status Label Mapping
+                const statusLabels = {
+                    'finished': 'Completado',
+                    'progress': 'En Curso',
+                    'stalled': 'Parado'
+                };
+
+                const objectivesHtml = project.objectives.map(obj =>
+                    `<li class="objective-item ${obj.done ? 'done' : 'pending'}">${obj.text}</li>`
+                ).join('');
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div>
+                            <h2 class="project-title">${project.title}</h2>
+                            <div class="project-meta">
+                                ${project.lead && project.lead !== 'Not specified' ? `<span>${project.lead}</span>` : ''}
+                                ${project.lead && project.lead !== 'Not specified' && project.lastUpdated && project.lastUpdated !== 'Not specified' ? ' • ' : ''}
+                                ${project.lastUpdated && project.lastUpdated !== 'Not specified' ? `<span>${project.lastUpdated}</span>` : ''}
+                            </div>
+                        </div>
+                        <span class="status-badge ${project.status}">${statusLabels[project.status]}</span>
+                    </div>
+                     <div class="chevron">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+
+                    <div class="expandable-content">
+                        <h3>Objetivos</h3>
+                        <ul class="objective-list">
+                            ${objectivesHtml}
+                        </ul>
+                        
+                        <h3>Informe de Estado</h3>
+                        <div class="reasoning-box">
+                            <span class="reasoning-label">Comentarios del Responsable</span>
+                            ${project.reasoning}
+                        </div>
+
+                        ${project.improvements && project.improvements.length > 0 ? `
+                        <h3>Mejoras Futuras</h3>
+                        <ul class="objective-list">
+                            ${project.improvements.map(item => `<li class="objective-item pending">${item}</li>`).join('')}
+                        </ul>
+                        ` : ''}
+
+                        ${project.dissemination && project.dissemination.length > 0 ? `
+                        <h3>Divulgación</h3>
+                        <ul class="objective-list">
+                            ${project.dissemination.map(item => `<li class="objective-item done">${item}</li>`).join('')}
+                        </ul>
+                        ` : ''}
+
+                        ${project.moa_config ? `
+                        <h3>Configuración Técnica</h3>
+                        <div class="technical-box">${project.moa_config}</div>
+                        ` : ''}
+
+                        ${project.operational_constraints ? `
+                        <div class="operational-box">
+                            <span class="operational-label">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                Problemas Operativos
+                            </span>
+                            ${project.operational_constraints}
+                        </div>
+                        ` : ''}
+
+                        ${project.ai_suggestions ? `
+                        <div class="ai-suggestions-box">
+                            <span class="ai-suggestions-label">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"></path><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                                Evaluación AI-Lab:
+                            </span>
+                            ${project.ai_suggestions}
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                list.appendChild(card);
+            });
+        }
+
+        function toggleCard(event, card) {
+            // Prevent triggering if clicked on a button/input inside (if we added any)
+            if (event.target.tagName === 'BUTTON' || event.target.tagName === 'INPUT') return;
+
+            card.classList.toggle('expanded');
+        }
+
+        function setFilter(status, btn) {
+            currentFilter = status;
+
+            // Update UI
+            document.querySelectorAll('.filter-chip').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+
+            renderProjects();
+        }
+
+        function filterProjects() {
+            renderProjects();
+        }
+
+        // Initial Render
+        renderProjects();
+
+    </script>
+</body>
+
+</html>
